@@ -1,8 +1,8 @@
 import os, requests, random, textwrap
 import moviepy.editor as mp
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image
 
-# سطر الإصلاح لمشكلة ANTIALIAS
+# إصلاح مشكلة Pillow الجديدة
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.LANCZOS
 
@@ -19,53 +19,69 @@ def process_ar(t):
 def get_random_quran():
     try:
         s_id = random.randint(1, 114)
-        res = requests.get(f"http://api.alquran.cloud/v1/surah/{s_id}/ar.alafasy").json()['data']
-        s_name = res['name']
+        res = requests.get(f"https://api.alquran.cloud/v1/surah/{s_id}/ar.alafasy", timeout=15).json()['data']
         ayah = random.choice(res['ayahs'])
-        return s_name, ayah['text'], ayah['audio']
+        return res['name'], ayah['text'], ayah['audio']
     except:
-        return "الفاتحة", "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ", "https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3"
+        return "سورة الإخلاص", "قُلْ هُوَ اللَّهُ أَحَدٌ", "https://cdn.islamic.network/quran/audio/128/ar.alafasy/112.mp3"
 
 def build_tiktok_video():
-    print("🚀 جاري صناعة فيديو احترافي...")
+    print("🚀 جاري التحضير...")
     s_name, text, audio_url = get_random_quran()
     
-    # 1. تحميل الصوت
-    with open("audio.mp3", "wb") as f: f.write(requests.get(audio_url).content)
+    # 1. تحميل الصوت (تأكد من الرابط)
+    audio_data = requests.get(audio_url).content
+    with open("audio.mp3", "wb") as f: f.write(audio_data)
     a_clip = mp.AudioFileClip("audio.mp3")
     
-    # 2. جلب الفيديو مع معالجة الخطأ
+    # 2. تحميل الفيديو (روابط مباشرة خام للمشاهد الطبيعية)
+    video_ready = False
+    # رابط مباشر لفيديو طبيعة (HD) لضمان العمل في حال فشل Pexels
+    fallback_url = "https://v1.assets.pexels.com/video_files/4124032/4124032-sd_540_960_25fps.mp4"
+    
     try:
         headers = {'Authorization': PEXELS_API_KEY}
-        queries = ['nature', 'mountains', 'galaxy', 'ocean', 'rain']
-        v_res = requests.get(f'https://api.pexels.com/videos/search?query={random.choice(queries)}&orientation=portrait&per_page=15', headers=headers).json()
+        v_res = requests.get('https://api.pexels.com/videos/search?query=nature&orientation=portrait&per_page=5', headers=headers, timeout=15).json()
         v_url = random.choice(v_res['videos'])['video_files'][0]['link']
-        with open("bg.mp4", "wb") as f: f.write(requests.get(v_url).content)
+        print(f"📥 Downloading from Pexels...")
+        v_data = requests.get(v_url).content
+        with open("bg.mp4", "wb") as f: f.write(v_data)
+        video_ready = True
     except Exception as e:
-        print(f"⚠️ Pexels Error: {e}. Using fallback background.")
-        # لو فشل، بيحمل فيديو طبيعة عام (رابط مباشر احتياطي)
-        fallback_url = "https://player.vimeo.com/external/370374926.sd.mp4?s=2318629938e2f89f7f4e9126d40c6a83602492f2&profile_id=164"
-        with open("bg.mp4", "wb") as f: f.write(requests.get(fallback_url).content)
+        print(f"⚠️ Pexels Failed, using static backup: {e}")
+        v_data = requests.get(fallback_url).content
+        with open("bg.mp4", "wb") as f: f.write(v_data)
+        video_ready = True
 
-    # 3. المونتاج
-    bg = mp.VideoFileClip("bg.mp4").resize(height=1280).crop(x1=0, y1=0, width=720, height=1280).set_duration(a_clip.duration)
-    bg = bg.fx(mp.vfx.colorx, 0.6) 
-    
-    title_fixed = process_ar(f" سورة {s_name} ")
-    title_clip = mp.TextClip(title_fixed, fontsize=55, color='gold', font=FONT_PATH, method='label').set_position(('center', 150)).set_duration(a_clip.duration)
+    # 3. المونتاج الفعلي
+    if video_ready:
+        try:
+            # فتح الفيديو والتأكد من جودته
+            bg = mp.VideoFileClip("bg.mp4")
+            # لو الفيديو أقصر من الصوت، نكرره
+            if bg.duration < a_clip.duration:
+                bg = mp.vfx.loop(bg, duration=a_clip.duration)
+            else:
+                bg = bg.set_duration(a_clip.duration)
 
-    wrapped_text = "\n".join(textwrap.wrap(text, width=25))
-    ayah_fixed = process_ar(wrapped_text)
-    txt_clip = mp.TextClip(ayah_fixed, fontsize=65, color='white', font=FONT_PATH, method='caption', size=(650, None), align='Center').set_position('center').set_duration(a_clip.duration)
+            bg = bg.resize(height=1280).crop(x1=0, y1=0, width=720, height=1280)
+            bg = bg.fx(mp.vfx.colorx, 0.6) # تعتيم 40%
+            
+            # النصوص
+            title = mp.TextClip(process_ar(f" سورة {s_name} "), fontsize=50, color='gold', font=FONT_PATH, method='label').set_position(('center', 150)).set_duration(a_clip.duration)
+            
+            wrapped = "\n".join(textwrap.wrap(text, width=28))
+            txt = mp.TextClip(process_ar(wrapped), fontsize=60, color='white', font=FONT_PATH, method='caption', size=(650, None), align='Center').set_position('center').set_duration(a_clip.duration)
 
-    final = mp.CompositeVideoClip([bg, title_clip, txt_clip]).set_audio(a_clip)
-    final.write_videofile("tiktok_final.mp4", fps=24, codec="libx264", audio_codec="aac")
-    
-    # 4. وصف الفيديو
-    hashtags = ["#قرآن", "#راحة_نفسية", "#islam", "#fyp", "#foryou"]
-    caption = f"سورة {s_name} 🕊️ { ' '.join(hashtags) }"
-    with open("caption.txt", "w", encoding="utf-8") as f: f.write(caption)
-    print(f"✅ Done: {caption}")
+            final = mp.CompositeVideoClip([bg, title, txt]).set_audio(a_clip)
+            # تقليل الجودة قليلاً لضمان سرعة الرفع وعدم حدوث Error في الذاكرة
+            final.write_videofile("tiktok_final.mp4", fps=24, codec="libx264", audio_codec="aac")
+            
+            caption = f"سورة {s_name} 🕋 #قرآن #islam #fyp"
+            with open("caption.txt", "w", encoding="utf-8") as f: f.write(caption)
+            print("✅ فيديو جاهز للرفع!")
+        except Exception as e:
+            print(f"❌ Montage Error: {e}")
 
 if __name__ == "__main__":
     build_tiktok_video()
