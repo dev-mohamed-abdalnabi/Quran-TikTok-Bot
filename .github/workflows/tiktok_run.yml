@@ -21,13 +21,12 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y ffmpeg imagemagick
-        # إصلاح سياسة أمان ImageMagick للكتابة على الفيديو
         sudo sed -i 's/<policy domain="path" rights="none" pattern="@\*"/<policy domain="path" rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml
 
     - name: Install Python Libraries
       run: |
         pip install moviepy==1.0.3 Pillow==9.5.0 arabic-reshaper python-bidi requests numpy==1.24.3
-        pip install tiktok-uploader # التأكد من أحدث نسخة للمكتبة
+        pip install tiktok-uploader
 
     - name: Generate Professional Video
       env:
@@ -41,5 +40,5 @@ jobs:
         echo "$COOKIES" > cookies.txt
         CAPTION=$(cat caption.txt)
         echo "🚀 Starting Upload: $CAPTION"
-        # استخدام الرفع مع تفعيل الـ Headless وتعطيل الصور لتسريع العملية
-        python -m tiktok_uploader -v tiktok_final.mp4 -d "$CAPTION" -c cookies.txt --headless True
+        # تم حذف --headless True لأنها كانت تسبب خطأ في الأرجومنت
+        python -m tiktok_uploader -v tiktok_final.mp4 -d "$CAPTION" -c cookies.txt
