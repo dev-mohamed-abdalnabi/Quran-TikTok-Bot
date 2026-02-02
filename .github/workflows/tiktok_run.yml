@@ -1,26 +1,35 @@
-name: TikTok Quran Bot
+name: TikTok Quran Bot Professional
 
 on:
   schedule:
-    # هينزل الساعة 6 مساءً بتوقيت مصر (وقت ذروة تيك توك)
+    # سيتم الرفع تلقائياً كل يوم الساعة 6 مساءً بتوقيت مصر
     - cron: '0 16 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # زر التشغيل اليدوي
 
 jobs:
   post-to-tiktok:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
     - name: Set up Python
       uses: actions/setup-python@v4
-      with: {python-version: '3.9'}
+      with:
+        python-version: '3.9'
     
-    - name: Install Dependencies
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg imagemagick
+        # تعديل سياسة الأمان للسماح لـ MoviePy بالكتابة على الفيديو
+        sudo sed -i 's/<policy domain="path" rights="none" pattern="@\*"/<policy domain="path" rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml
+
+    - name: Install Python Libraries
       run: |
         pip install moviepy==1.0.3 Pillow arabic-reshaper python-bidi requests numpy tiktok-uploader
-        sudo apt-get install ffmpeg
 
-    - name: Generate Video
+    - name: Generate Professional Video
       env:
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       run: python main.py
@@ -29,6 +38,10 @@ jobs:
       env:
         COOKIES: ${{ secrets.TIKTOK_COOKIES }}
       run: |
-        # تحويل السر من الخزنة لملف نصي ليقرأه البوت
+        # استخراج الكوكيز من الخزنة
         echo "$COOKIES" > cookies.txt
-        python -m tiktok_uploader -v tiktok_final.mp4 -d "تلاوة خاشعة ✨ #قرآن #islam #fyp #foryou" -c cookies.txt
+        # قراءة العنوان والهاشتاجات من الملف اللي عمله الكود
+        CAPTION=$(cat caption.txt)
+        echo "Uploading with caption: $CAPTION"
+        # أمر الرفع الرسمي
+        python -m tiktok_uploader -v tiktok_final.mp4 -d "$CAPTION" -c cookies.txt
