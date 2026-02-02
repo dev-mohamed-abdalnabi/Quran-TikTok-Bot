@@ -1,0 +1,34 @@
+name: TikTok Quran Bot
+
+on:
+  schedule:
+    # هينزل الساعة 6 مساءً بتوقيت مصر (وقت ذروة تيك توك)
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  post-to-tiktok:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with: {python-version: '3.9'}
+    
+    - name: Install Dependencies
+      run: |
+        pip install moviepy==1.0.3 Pillow arabic-reshaper python-bidi requests numpy tiktok-uploader
+        sudo apt-get install ffmpeg
+
+    - name: Generate Video
+      env:
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      run: python main.py
+
+    - name: Upload to TikTok
+      env:
+        COOKIES: ${{ secrets.TIKTOK_COOKIES }}
+      run: |
+        # تحويل السر من الخزنة لملف نصي ليقرأه البوت
+        echo "$COOKIES" > cookies.txt
+        python -m tiktok_uploader -v tiktok_final.mp4 -d "تلاوة خاشعة ✨ #قرآن #islam #fyp #foryou" -c cookies.txt
