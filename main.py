@@ -2,7 +2,6 @@ import os, requests, random, textwrap
 import moviepy.editor as mp
 from PIL import Image
 
-# إصلاح توافق المكتبات
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.LANCZOS
 
@@ -25,14 +24,13 @@ def get_random_quran():
         return "سورة الإخلاص", "قُلْ هُوَ اللَّهُ أَحَدٌ", "https://cdn.islamic.network/quran/audio/128/ar.alafasy/112.mp3"
 
 def build_tiktok_video():
-    print("🚀 جاري طبخ الفيديو...")
+    print("🚀 جاري طبخ الفيديو الاحترافي...")
     s_name, text, audio_url = get_random_quran()
     
-    # تحميل الصوت والفيديو
     with open("audio.mp3", "wb") as f: f.write(requests.get(audio_url).content)
     a_clip = mp.AudioFileClip("audio.mp3")
     
-    # رابط فيديو طبيعة مباشر ومضمون 100%
+    # رابط فيديو طبيعة مباشر
     fallback_v = "https://v1.assets.pexels.com/video_files/4124032/4124032-sd_540_960_25fps.mp4"
     try:
         headers = {'Authorization': PEXELS_API_KEY}
@@ -43,7 +41,6 @@ def build_tiktok_video():
 
     with open("bg.mp4", "wb") as f: f.write(requests.get(v_url).content)
 
-    # المونتاج
     bg = mp.VideoFileClip("bg.mp4")
     if bg.duration < a_clip.duration:
         bg = mp.vfx.loop(bg, duration=a_clip.duration)
@@ -61,8 +58,8 @@ def build_tiktok_video():
     final.write_videofile("tiktok_final.mp4", fps=24, codec="libx264", audio_codec="aac")
     
     with open("caption.txt", "w", encoding="utf-8") as f:
-        f.write(f"سورة {s_name} 🕋 #قرآن #islam #fyp")
-    print("✅ الفيديو جاهز!")
+        f.write(f"سورة {s_name} ✨ #قرآن #islam #fyp")
+    print("✅ الفيديو جاهز للمرحلة القادمة!")
 
 if __name__ == "__main__":
     build_tiktok_video()
