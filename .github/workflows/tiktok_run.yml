@@ -26,21 +26,21 @@ jobs:
     - name: Install Python Libraries
       run: |
         pip install moviepy==1.0.3 Pillow==9.5.0 arabic-reshaper python-bidi requests numpy==1.24.3
-        pip install playwright tiktok-uploader
-        # تثبيت محرك المتصفح اللازم لتخطي الحماية
-        python -m playwright install chromium --with-deps
+        # تثبيت مكتبة الرفع الجديدة والأقوى
+        pip install tiktok-video-upload
 
     - name: Generate Video
       env:
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       run: python main.py
 
-    - name: Upload to TikTok (Playwright Mode)
+    - name: Upload to TikTok
       env:
         COOKIES: ${{ secrets.TIKTOK_COOKIES }}
       run: |
+        # تحويل الكوكيز لتنسيق JSON لو كانت نص عادي (المكتبة دي بتحب الـ JSON)
         echo "$COOKIES" > cookies.txt
         CAPTION=$(cat caption.txt)
         echo "🚀 Starting Upload: $CAPTION"
-        # استخدام المتصفح الحديث chromium لإتمام الرفع
-        python -m tiktok_uploader -v tiktok_final.mp4 -d "$CAPTION" -c cookies.txt --browser chromium
+        # أمر الرفع الجديد (بسيط ومباشر)
+        tiktok-video-upload -v tiktok_final.mp4 -t "$CAPTION" -c cookies.txt
