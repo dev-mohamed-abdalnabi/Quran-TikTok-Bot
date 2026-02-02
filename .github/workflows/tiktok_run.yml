@@ -2,9 +2,8 @@ name: TikTok Quran Bot Professional
 
 on:
   schedule:
-    # سيتم الرفع تلقائياً كل يوم الساعة 6 مساءً بتوقيت مصر
     - cron: '0 16 * * *'
-  workflow_dispatch: # زر التشغيل اليدوي
+  workflow_dispatch:
 
 jobs:
   post-to-tiktok:
@@ -16,13 +15,12 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.10' # النسخة المطلوبة للمكتبة
     
     - name: Install System Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y ffmpeg imagemagick
-        # تعديل سياسة الأمان للسماح لـ MoviePy بالكتابة على الفيديو
         sudo sed -i 's/<policy domain="path" rights="none" pattern="@\*"/<policy domain="path" rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml
 
     - name: Install Python Libraries
@@ -38,10 +36,7 @@ jobs:
       env:
         COOKIES: ${{ secrets.TIKTOK_COOKIES }}
       run: |
-        # استخراج الكوكيز من الخزنة
         echo "$COOKIES" > cookies.txt
-        # قراءة العنوان والهاشتاجات من الملف اللي عمله الكود
         CAPTION=$(cat caption.txt)
         echo "Uploading with caption: $CAPTION"
-        # أمر الرفع الرسمي
         python -m tiktok_uploader -v tiktok_final.mp4 -d "$CAPTION" -c cookies.txt
